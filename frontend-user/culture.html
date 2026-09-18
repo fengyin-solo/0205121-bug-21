@@ -112,13 +112,13 @@ async function loadCultures(page) {
     grid.innerHTML = list.map(c => `
         <div class="card" onclick="location.href='culture-detail.html?id=${c.id}'">
             <div class="card-img">
-                ${c.coverImage ? `<img src="${API + c.coverImage}" alt="${c.title}" onerror="imgError(this)">` : ''}
+                ${c.coverImage ? `<img src="${API + c.coverImage}" alt="${escHtml(c.title)}" onerror="imgError(this)">` : ''}
                 <div class="placeholder-icon"><i class="fas fa-book-open"></i></div>
             </div>
             <div class="card-body">
-                <h3>${c.title || ''}</h3>
+                <h3>${escHtml(c.title) || ''}${fallbackBadge(c, 'title')}</h3>
                 <div class="card-meta">
-                    <span><i class="fas fa-user"></i> ${c.author || '佚名'}</span>
+                    <span><i class="fas fa-user"></i> ${escHtml(c.author || '佚名')}</span>
                     <span><i class="fas fa-eye"></i> ${c.viewCount || 0}</span>
                 </div>
             </div>
@@ -127,6 +127,9 @@ async function loadCultures(page) {
 
     renderPagination(document.getElementById('pagination'), currentPage, total, 9, 'loadCultures');
 }
+
+// 切换语言后按新语言重新加载列表
+document.addEventListener('langchange', () => { loadCultures(currentPage); });
 
 document.getElementById('filterKeyword').addEventListener('keyup', e => { if (e.key === 'Enter') loadCultures(1); });
 

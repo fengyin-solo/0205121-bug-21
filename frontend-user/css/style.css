@@ -325,3 +325,7 @@ img{max-width:100%;display:block}
 .chat-page-wrap{width:100%;max-width:100%;margin:16px 0}
 .chat-container{width:100%;height:70vh}
 }
+
+/* 多语言回退标记：缺译文而展示中文时给出的小徽章 */
+.lang-fallback-tag{display:inline-block;vertical-align:middle;background:#FFF3E0;color:#B26A00;border:1px solid #FFD591;border-radius:4px;padding:1px 6px;font-size:11px;font-weight:600;line-height:1.4;margin-left:4px;white-space:nowrap}
+h1 .lang-fallback-tag,h2 .lang-fallback-tag,h3 .lang-fallback-tag,h4 .lang-fallback-tag,h5 .lang-fallback-tag{font-size:.65em;vertical-align:middle}

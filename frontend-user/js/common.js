@@ -3,7 +3,7 @@ const API = (window.location.port === '8083' || window.location.port === '80' ||
     ? '' : 'http://localhost:8089';
 
 async function api(path) {
-    const res = await fetch(API + path, { credentials: 'include' });
+    const res = await fetch(API + withLang(path), { credentials: 'include' });
     const data = await res.json();
     if (data.code === 401) { clearUser(); showToast('请先登录', 'error'); setTimeout(() => location.href = 'login.html', 1000); return null; }
     if (data.code !== 200) { showToast(data.msg || '请求失败', 'error'); return null; }
@@ -63,6 +63,7 @@ const LANG = {
         share:'分享',copyLink:'复制链接',copied:'已复制',
         confirmCancel:'确定取消该订单？',confirmRefund:'确定申请退款？',
         loginFirst:'请先登录',loginSuccess:'登录成功',registerSuccess:'注册成功',
+        zhFallback:'中文',zhFallbackTip:'暂无译文，显示中文',
         footer:'© 2026 贵州红色文化旅游景点信息管理系统'
     },
     en: { home:'Home',spots:'Spots',routes:'Routes',culture:'Red Culture',hotels:'Hotels',foods:'Food',faq:'Support',login:'Login',register:'Register',logout:'Logout',profile:'Profile',favorites:'Favorites',orders:'Orders',messages:'Messages',search:'Search',more:'More',price:'Price',free:'Free',day:'Day(s)',book:'Book',collect:'Collect',collected:'Collected',like:'Like',liked:'Liked',comment:'Comment',submit:'Submit',cancel:'Cancel',pay:'Pay',refund:'Refund',allRegions:'All Regions',allThemes:'All Themes',hotSpots:'Hot Spots',recommendRoutes:'Recommended Routes',cultureStories:'Red Stories',noData:'No Data',loading:'Loading...',
@@ -83,6 +84,7 @@ const LANG = {
         share:'Share',copyLink:'Copy Link',copied:'Copied',
         confirmCancel:'Cancel this order?',confirmRefund:'Request refund?',
         loginFirst:'Please login first',loginSuccess:'Login successful',registerSuccess:'Registration successful',
+        zhFallback:'ZH',zhFallbackTip:'No translation yet · showing Chinese',
         footer:'© 2026 Guizhou Red Culture Tourism System'
     },
     ja: { home:'ホーム',spots:'観光地',routes:'ルート',culture:'赤い文化',hotels:'ホテル',foods:'グルメ',faq:'サポート',login:'ログイン',register:'登録',logout:'ログアウト',profile:'プロフィール',favorites:'お気に入り',orders:'注文',messages:'メッセージ',search:'検索',more:'もっと見る',price:'価格',free:'無料',day:'日',book:'予約',collect:'保存',collected:'保存済',like:'いいね',liked:'いいね済',comment:'コメント',submit:'送信',cancel:'キャンセル',pay:'支払',refund:'返金',allRegions:'全地域',allThemes:'全テーマ',hotSpots:'人気観光地',recommendRoutes:'おすすめルート',cultureStories:'赤い物語',noData:'データなし',loading:'読み込み中...',
@@ -103,6 +105,7 @@ const LANG = {
         share:'共有',copyLink:'リンクをコピー',copied:'コピー済',
         confirmCancel:'この注文をキャンセルしますか？',confirmRefund:'返金を申請しますか？',
         loginFirst:'ログインしてください',loginSuccess:'ログイン成功',registerSuccess:'登録成功',
+        zhFallback:'中文',zhFallbackTip:'翻訳が未登録のため中国語を表示中',
         footer:'© 2026 貴州赤色文化観光管理システム'
     }
 };
@@ -119,7 +122,9 @@ function switchLang(lang) {
 
 /**
  * 从业务数据对象中获取当前语言的字段值。
- * 例如 getLang(spot, 'name') 在英文环境下返回 spot.nameEn（若有），否则回退到 spot.name。
+ * 服务端已按 lang 返回同语言口径的数据（缺译文时回退中文），
+ * 因此标准字段 name/description/title/content 即为当前语言内容；
+ * 本地兜底（如个别未带 lang 的请求）仍支持读取 nameEn/nameJa。
  */
 function getLang(obj, field) {
     if (!obj) return '';
@@ -129,6 +134,21 @@ function getLang(obj, field) {
         if (val) return val;
     }
     return obj[field] || '';
+}
+
+/**
+ * 服务端在某字段缺少译文回退到中文时，会通过 fallbackFields 标记。
+ * 返回一个“中文”小徽章 HTML，提示该字段当前展示的是回退内容。
+ */
+function fallbackBadge(obj, field) {
+    if (currentLang === 'zh' || !obj || !obj.fallbackFields || !obj.fallbackFields[field]) return '';
+    return ' <span class="lang-fallback-tag" title="' + t('zhFallbackTip') + '">' + t('zhFallback') + '</span>';
+}
+
+/** 转义 HTML，避免列表数据破坏页面结构。 */
+function escHtml(s) {
+    if (s === null || s === undefined) return '';
+    return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 }
 
 /* ========== UI Helpers ========== */
@@ -205,9 +225,10 @@ function renderStars(rating, max = 5) {
     return s;
 }
 
-/** 给业务 API 路径自动附加 lang 参数 */
+/** 给业务 API 路径自动附加 lang 参数；已显式带 lang 的路径不覆盖 */
 function withLang(path) {
     if (!currentLang || currentLang === 'zh') return path;
+    if (/[?&]lang=/.test(path)) return path;
     return path + (path.includes('?') ? '&' : '?') + 'lang=' + currentLang;
 }
 

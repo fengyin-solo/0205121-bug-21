@@ -80,11 +80,11 @@ async function loadFoods(page) {
         '<a class="card" href="food-detail.html?id=' + f.id + '">' +
             '<div class="card-img">' +
                 '<img src="' + API + (f.coverImage || '') + '" onerror="imgError(this)" alt="">' +
-                (f.category ? '<span class="card-tag">' + f.category + '</span>' : '') +
+                (f.category ? '<span class="card-tag">' + escHtml(f.category) + '</span>' : '') +
             '</div>' +
             '<div class="card-body">' +
-                '<h3>' + (f.name || '') + '</h3>' +
-                '<p>' + (f.description || f.intro || '') + '</p>' +
+                '<h3>' + escHtml(f.name || '') + fallbackBadge(f, 'name') + '</h3>' +
+                '<p>' + escHtml(f.description || '') + fallbackBadge(f, 'description') + '</p>' +
                 '<div class="card-meta">' +
                     '<span class="card-price">¥' + (f.price || 0) + '</span>' +
                 '</div>' +
@@ -93,6 +93,9 @@ async function loadFoods(page) {
     ).join('');
     renderPagination(document.getElementById('pagination'), currentPage, totalRecords, 9, 'loadFoods');
 }
+
+// 切换语言后按新语言重新加载列表
+document.addEventListener('langchange', () => { loadFoods(currentPage); });
 
 loadCategories();
 loadFoods(1);

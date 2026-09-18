@@ -1,6 +1,7 @@
 package com.redtourism.controller;
 
 import com.baomidou.mybatisplus.core.metadata.IPage;
+import com.redtourism.common.I18nUtil;
 import com.redtourism.common.Result;
 import com.redtourism.entity.CultureCategory;
 import com.redtourism.entity.CultureContent;
@@ -46,13 +47,10 @@ public class CultureController {
         return Result.success(cultureService.listCategoriesByParent(parentId));
     }
 
-    private void applyLang(CultureContent c, String lang) {
-        if ("en".equals(lang)) {
-            if (c.getTitleEn() != null && !c.getTitleEn().isEmpty()) c.setTitle(c.getTitleEn());
-            if (c.getContentEn() != null && !c.getContentEn().isEmpty()) c.setContent(c.getContentEn());
-        } else if ("ja".equals(lang)) {
-            if (c.getTitleJa() != null && !c.getTitleJa().isEmpty()) c.setTitle(c.getTitleJa());
-            if (c.getContentJa() != null && !c.getContentJa().isEmpty()) c.setContent(c.getContentJa());
-        }
+    /** 统一多语言口径，与景点/线路/美食一致：缺译文回退中文并标记。 */
+    static void applyLang(CultureContent c, String lang) {
+        I18nUtil.applyFields(c, lang,
+                new String[]{"title", "titleEn", "titleJa"},
+                new String[]{"content", "contentEn", "contentJa"});
     }
 }

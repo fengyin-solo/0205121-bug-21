@@ -164,20 +164,29 @@ function updateSubtotal() {
 async function loadDetail() {
     food = await api('/api/food/detail?id=' + foodId);
     if (!food) { document.getElementById('foodDesc').innerHTML = '<p>美食不存在</p>'; return; }
-    document.getElementById('foodName').textContent = food.name || '';
-    document.getElementById('foodCategory').innerHTML = '<i class="fas fa-tag"></i> ' + (food.category || '');
+    document.getElementById('foodName').innerHTML = escHtml(food.name || '') + fallbackBadge(food, 'name');
+    document.getElementById('foodCategory').innerHTML = '<i class="fas fa-tag"></i> ' + escHtml(food.category || '');
     document.getElementById('foodPrice').innerHTML = '¥' + (food.price || 0);
     var coverEl = document.getElementById('foodCover');
     if (coverEl) {
         coverEl.onerror = function(){ imgError(coverEl); };
         coverEl.src = food.coverImage ? (API + food.coverImage) : '';
     }
-    document.getElementById('foodDesc').innerHTML = '<p style="font-size:15px;line-height:1.8;color:var(--text)">' + (food.description || '暂无介绍') + '</p>';
+    document.getElementById('foodDesc').innerHTML =
+        '<p style="font-size:15px;line-height:1.8;color:var(--text)">' +
+            (escHtml(food.description) || escHtml(t('noData'))) +
+        '</p>' + fallbackBadge(food, 'description');
     document.title = (food.name || '美食详情') + ' - 贵州红色旅游';
     updateSubtotal();
     if (food.storeId) loadStore(food.storeId);
     if (food.category) loadRelated(food.category);
 }
+
+// 切换语言后按新语言重新拉取详情与同类推荐
+document.addEventListener('langchange', () => {
+    if (!food) return;
+    loadDetail();
+});
 
 async function loadStore(storeId) {
     var store = await api('/api/food/storeDetail?id=' + storeId);

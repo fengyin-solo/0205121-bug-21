@@ -1,11 +1,34 @@
 const API = (window.location.port === '8084' || window.location.port === '81') && window.location.protocol !== 'file:' ? '' : 'http://localhost:8089';
 
+/* ========== 多语言（与用户端共用 localStorage('lang')，跨端跨页面口径一致） ========== */
+const ADMIN_LANG_LABEL = { zh: '中文', en: 'English', ja: '日本語' };
+let adminLang = localStorage.getItem('lang') || 'zh';
+
+/** 给请求路径附加当前语言参数，让后台列表与用户端列表/详情按同一语言口径返回。 */
+function withLang(path) {
+    if (!adminLang || adminLang === 'zh') return path;
+    // 已显式指定 lang（如编辑时强制读取中文原文 lang=zh）时不覆盖
+    if (/[?&]lang=/.test(path)) return path;
+    return path + (path.includes('?') ? '&' : '?') + 'lang=' + adminLang;
+}
+
 async function api(path) {
-    const res = await fetch(API + path, { credentials: 'include' });
+    const res = await fetch(API + withLang(path), { credentials: 'include' });
     const data = await res.json();
     if (data.code === 401) { showToast('请先登录', 'error'); setTimeout(() => location.href = 'login.html', 1000); return null; }
     if (data.code !== 200) { showToast(data.msg || '操作失败', 'error'); return null; }
     return (data.data !== null && data.data !== undefined) ? data.data : true;
+}
+
+/**
+ * 服务端在某字段缺少译文回退到中文时，会通过 fallbackFields 标记。
+ * 非中文环境下为该字段渲染一个小徽章，提示当前展示的是中文回退内容。
+ */
+function fallbackBadge(obj, field) {
+    if (adminLang === 'zh' || !obj || !obj.fallbackFields || !obj.fallbackFields[field]) return '';
+    const tip = adminLang === 'en' ? 'No translation yet · showing Chinese' : '翻訳が未登録のため中国語を表示中';
+    const label = adminLang === 'en' ? 'ZH' : '中文';
+    return ' <span class="lang-fallback-tag" title="' + tip + '">' + label + '</span>';
 }
 
 function showConfirm(msg, onOk) {
@@ -200,7 +223,136 @@ async function uploadFile(inputEl) {
 function doLogout() {
     clearUser();
     showToast('已退出登录');
-    setTimeout(() => location.href = 'login.html', 500);
+    setTimeout(() => location.href = 'login.html', 1000);
+}
+
+/* ========== 多语言选择（注入顶栏，跨页面共享 localStorage 中的 lang） ========== */
+function renderLangSwitcher() {
+    const host = document.querySelector('.top-bar-right');
+    if (!host || document.getElementById('adminLangSelect')) return;
+    const wrap = document.createElement('label');
+    wrap.className = 'admin-lang';
+    wrap.innerHTML = '<span>语言</span>';
+    const sel = document.createElement('select');
+    sel.id = 'adminLangSelect';
+    sel.innerHTML = '<option value="zh">中文</option><option value="en">English</option><option value="ja">日本語</option>';
+    sel.value = adminLang;
+    sel.onchange = function () {
+        adminLang = this.value;
+        localStorage.setItem('lang', adminLang);
+        // 通知当前页面按新语言重新加载列表数据
+        document.dispatchEvent(new CustomEvent('adminlangchange', { detail: adminLang }));
+    };
+    wrap.appendChild(sel);
+    host.insertBefore(wrap, host.firstChild);
+}
+
+/* ========== 译文批量上传（CSV，整份覆盖，按 ID 对齐） ========== */
+const TRANSLATION_LABELS = {
+    spot: '景点', route: '线路', culture: '红色文化', food: '美食'
+};
+
+function openTranslationModal(targetType) {
+    let modal = document.getElementById('translationModal');
+    if (modal) modal.remove();
+    const typeLabel = TRANSLATION_LABELS[targetType] || targetType;
+    modal = document.createElement('div');
+    modal.className = 'modal-overlay active';
+    modal.id = 'translationModal';
+    modal.innerHTML =
+        '<div class="modal" style="width:520px">' +
+            '<div class="modal-header"><h3>上传' + escHtml(typeLabel) + '译文（CSV）</h3>' +
+            '<button class="modal-close" onclick="closeTranslationModal()">&times;</button></div>' +
+            '<div class="modal-body">' +
+                '<div class="form-group">' +
+                    '<label>目标语言</label>' +
+                    '<select class="form-control" id="trLang">' +
+                        '<option value="en">English（英文）</option>' +
+                        '<option value="ja">日本語（日文）</option>' +
+                    '</select>' +
+                '</div>' +
+                '<div class="form-group">' +
+                    '<label>译文文件（CSV，UTF-8 编码）</label>' +
+                    '<input type="file" id="trFile" accept=".csv" class="form-control">' +
+                    '<p class="form-tip">请先<a href="#" id="trTemplateLink">下载译文模板</a>，按模板中的 id 行填写译文列后再上传；调整文件内行顺序不会影响对应关系。</p>' +
+                    '<p class="form-tip">同一语言再次上传将<b>整份覆盖</b>上一次结果；上传过程中如发生中断或错误，已保存内容会自动回滚，不会留下半份译文。缺少译文的条目将继续向游客展示中文并标注“中文”。</p>' +
+                '</div>' +
+                '<div id="trResult" class="tr-result" style="display:none"></div>' +
+            '</div>' +
+            '<div class="modal-footer">' +
+                '<button class="btn btn-default" onclick="closeTranslationModal()">关闭</button>' +
+                '<button class="btn btn-primary" id="trUploadBtn" onclick="submitTranslation(\'' + targetType + '\')"><i class="fas fa-upload"></i> 上传译文</button>' +
+            '</div>' +
+        '</div>';
+    document.body.appendChild(modal);
+    modal.classList.add('active');
+    const link = document.getElementById('trTemplateLink');
+    link.onclick = function (e) {
+        e.preventDefault();
+        const lang = document.getElementById('trLang').value;
+        // 模板下载带登录态（管理端接口）
+        fetch(API + '/api/admin/translation/template?targetType=' + targetType + '&lang=' + lang, { credentials: 'include' })
+            .then(async function (res) {
+                if (!res.ok) { showToast('模板下载失败', 'error'); return; }
+                const blob = await res.blob();
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = targetType + '-' + lang + '-template.csv';
+                document.body.appendChild(a);
+                a.click();
+                a.remove();
+                URL.revokeObjectURL(url);
+            })
+            .catch(function () { showToast('模板下载失败', 'error'); });
+    };
+}
+
+function closeTranslationModal() {
+    const modal = document.getElementById('translationModal');
+    if (modal) modal.remove();
+}
+
+async function submitTranslation(targetType) {
+    const lang = document.getElementById('trLang').value;
+    const input = document.getElementById('trFile');
+    const file = input.files[0];
+    const resultEl = document.getElementById('trResult');
+    const btn = document.getElementById('trUploadBtn');
+    if (!file) { showToast('请先选择 CSV 文件', 'warning'); return; }
+    const fd = new FormData();
+    fd.append('file', file);
+    fd.append('targetType', targetType);
+    fd.append('lang', lang);
+    btn.disabled = true;
+    resultEl.style.display = 'none';
+    try {
+        const res = await fetch(API + '/api/admin/translation/upload', {
+            method: 'POST', body: fd, credentials: 'include'
+        });
+        const data = await res.json();
+        if (data.code === 200) {
+            showToast(data.msg || '译文上传成功');
+            resultEl.style.display = 'block';
+            resultEl.className = 'tr-result tr-result-ok';
+            const r = data.data || {};
+            resultEl.innerHTML = '<i class="fas fa-check-circle"></i> ' +
+                escHtml(r.message || '上传成功') +
+                '（更新 ' + (r.updatedRows || 0) + ' 条，跳过 ' + (r.skippedRows || 0) + ' 条）';
+            // 通知各列表按当前语言刷新
+            document.dispatchEvent(new CustomEvent('adminlangchange', { detail: adminLang }));
+        } else {
+            resultEl.style.display = 'block';
+            resultEl.className = 'tr-result tr-result-err';
+            resultEl.innerHTML = '<i class="fas fa-times-circle"></i> ' + escHtml(data.msg || '上传失败，已回滚');
+        }
+    } catch (e) {
+        resultEl.style.display = 'block';
+        resultEl.className = 'tr-result tr-result-err';
+        resultEl.innerHTML = '<i class="fas fa-times-circle"></i> 上传中断：本次内容未保存，原有译文保持不变';
+    } finally {
+        btn.disabled = false;
+    }
 }
 
 function toggleSidebar() {
@@ -269,6 +421,7 @@ function normalizeTableActionColumns(root = document) {
 
 // 监听动态渲染（列表页大量通过 innerHTML 异步更新）
 document.addEventListener('DOMContentLoaded', () => {
+    renderLangSwitcher();
     normalizeTableActionColumns(document);
     const mo = new MutationObserver(() => normalizeTableActionColumns(document));
     mo.observe(document.body, { childList: true, subtree: true });

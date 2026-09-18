@@ -1,6 +1,7 @@
 package com.redtourism.controller;
 
 import com.baomidou.mybatisplus.core.metadata.IPage;
+import com.redtourism.common.I18nUtil;
 import com.redtourism.common.Result;
 import com.redtourism.entity.Route;
 import com.redtourism.entity.RouteSpot;
@@ -38,8 +39,12 @@ public class RouteController {
     }
 
     @GetMapping("/spots")
-    public Result<List<RouteSpot>> spots(@RequestParam Long routeId) {
-        return Result.success(routeService.getRouteSpots(routeId));
+    public Result<List<RouteSpot>> spots(@RequestParam Long routeId,
+                                          @RequestParam(required = false, defaultValue = "zh") String lang) {
+        List<RouteSpot> list = routeService.getRouteSpots(routeId);
+        list.forEach(rs -> I18nUtil.applyFields(rs, lang,
+                new String[]{"spotName", "spotNameEn", "spotNameJa"}));
+        return Result.success(list);
     }
 
     @GetMapping("/themes")
@@ -49,13 +54,10 @@ public class RouteController {
         return Result.success(themes);
     }
 
-    private void applyLang(Route r, String lang) {
-        if ("en".equals(lang)) {
-            if (r.getNameEn() != null && !r.getNameEn().isEmpty()) r.setName(r.getNameEn());
-            if (r.getDescriptionEn() != null && !r.getDescriptionEn().isEmpty()) r.setDescription(r.getDescriptionEn());
-        } else if ("ja".equals(lang)) {
-            if (r.getNameJa() != null && !r.getNameJa().isEmpty()) r.setName(r.getNameJa());
-            if (r.getDescriptionJa() != null && !r.getDescriptionJa().isEmpty()) r.setDescription(r.getDescriptionJa());
-        }
+    /** 统一多语言口径，与景点/美食列表、详情一致：缺译文回退中文并标记。 */
+    static void applyLang(Route r, String lang) {
+        I18nUtil.applyFields(r, lang,
+                new String[]{"name", "nameEn", "nameJa"},
+                new String[]{"description", "descriptionEn", "descriptionJa"});
     }
 }

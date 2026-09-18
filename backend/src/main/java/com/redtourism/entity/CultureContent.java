@@ -4,6 +4,7 @@ import com.baomidou.mybatisplus.annotation.*;
 import lombok.Data;
 import java.io.Serializable;
 import java.util.Date;
+import java.util.Map;
 
 @Data
 @TableName("culture_content")
@@ -28,4 +29,8 @@ public class CultureContent implements Serializable {
     private Date createTime;
     @TableField(fill = FieldFill.INSERT_UPDATE)
     private Date updateTime;
+
+    /** 多语言回退标记：key 为发生中文回退的字段名，仅接口响应时填充，非数据库列 */
+    @TableField(exist = false)
+    private Map<String, Boolean> fallbackFields;
 }

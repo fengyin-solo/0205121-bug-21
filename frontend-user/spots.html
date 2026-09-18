@@ -103,15 +103,15 @@ async function loadSpots(page) {
     grid.innerHTML = list.map(s => `
         <div class="card" onclick="location.href='spot-detail.html?id=${s.id}'">
             <div class="card-img">
-                ${s.coverImage ? `<img src="${API + s.coverImage}" alt="${s.name}" onerror="imgError(this)">` : ''}
+                ${s.coverImage ? `<img src="${API + s.coverImage}" alt="${escHtml(s.name)}" onerror="imgError(this)">` : ''}
                 <div class="placeholder-icon"><i class="fas fa-mountain"></i></div>
-                ${s.theme ? `<span class="card-tag">${s.theme}</span>` : ''}
+                ${s.theme ? `<span class="card-tag">${escHtml(s.theme)}</span>` : ''}
             </div>
             <div class="card-body">
-                <h3>${s.name || ''}</h3>
-                <p>${s.description || ''}</p>
+                <h3>${escHtml(s.name) || ''}${fallbackBadge(s, 'name')}</h3>
+                <p>${escHtml(s.description) || ''}${fallbackBadge(s, 'description')}</p>
                 <div class="card-meta">
-                    <span class="card-price">${s.ticketPrice > 0 ? '¥' + s.ticketPrice : '免费'}</span>
+                    <span class="card-price">${s.ticketPrice > 0 ? '¥' + s.ticketPrice : escHtml(t('free'))}</span>
                     <span><i class="fas fa-eye"></i> ${s.viewCount || 0}</span>
                 </div>
                 <div class="card-rating" style="margin-top:6px">${renderStars(Math.round(s.avgRating || 0))}</div>
@@ -121,6 +121,9 @@ async function loadSpots(page) {
 
     renderPagination(document.getElementById('pagination'), currentPage, total, 9, 'loadSpots');
 }
+
+// 语言在页面间通过 localStorage 保持一致；切换语言后重新拉取同语言数据
+document.addEventListener('langchange', () => { loadSpots(currentPage); });
 
 document.getElementById('filterKeyword').addEventListener('keyup', e => { if (e.key === 'Enter') loadSpots(1); });
 

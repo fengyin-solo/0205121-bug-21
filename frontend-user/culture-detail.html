@@ -105,11 +105,14 @@ let cultureData = null;
 
 function renderCultureContent() {
     if (!cultureData) return;
-    const title = getLang(cultureData, 'title') || cultureData.title;
-    const content = getLang(cultureData, 'content') || cultureData.content || '';
+    // 服务端已按当前 lang 返回标题与正文，缺译文时回退中文并带 fallbackFields 标记
+    const title = cultureData.title || '';
+    const content = cultureData.content || '';
     document.title = title + ' - 贵州红色旅游';
-    document.getElementById('cultureTitle').textContent = title;
-    document.getElementById('cultureContent').innerHTML = content.includes('<') ? content : content.split('\n').map(p => `<p>${p}</p>`).join('');
+    document.getElementById('cultureTitle').innerHTML = escHtml(title) + fallbackBadge(cultureData, 'title');
+    // 富文本内容（允许 HTML）不做转义；纯文本按段落渲染，并在整体回退中文时给出标注
+    const html = content.includes('<') ? content : content.split('\n').map(p => `<p>${escHtml(p)}</p>`).join('');
+    document.getElementById('cultureContent').innerHTML = html + fallbackBadge(cultureData, 'content');
 }
 
 async function loadDetail() {
@@ -128,7 +131,8 @@ async function loadDetail() {
     renderCultureContent();
 }
 
-document.addEventListener('langchange', () => { renderCultureContent(); });
+// 切换语言时重新拉取详情，保证列表与详情为同一种语言
+document.addEventListener('langchange', () => { if (cultureData) loadDetail(); });
 
 async function loadLikeCount() {
     const res = await api(`/api/like/count?targetType=CULTURE&targetId=${cultureId}`);

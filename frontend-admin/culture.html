@@ -55,7 +55,10 @@
             <div class="card">
                 <div class="card-header">
                     <h2>文化内容</h2>
-                    <button class="btn btn-primary" onclick="openModal()"><i class="fas fa-plus"></i> 新增内容</button>
+                    <div class="action-btns" style="display:flex;gap:8px">
+                        <button class="btn btn-default" onclick="openTranslationModal('culture')"><i class="fas fa-language"></i> 上传译文</button>
+                        <button class="btn btn-primary" onclick="openModal()"><i class="fas fa-plus"></i> 新增内容</button>
+                    </div>
                 </div>
                 <div class="table-wrapper">
                     <table>
@@ -180,7 +183,7 @@ async function loadData(page) {
         h += `<tr>
             <td>${c.id}</td>
             <td>${cover}</td>
-            <td>${escHtml(c.title)}</td>
+            <td>${escHtml(c.title)}${fallbackBadge(c, 'title')}</td>
             <td>${escHtml(catName)}</td>
             <td>${escHtml(c.author || '-')}</td>
             <td class="action-btns">
@@ -215,7 +218,8 @@ function openModal(item) {
 function closeModal() { document.getElementById('formModal').classList.remove('active'); }
 
 async function editItem(id) {
-    const data = await api('/api/culture/detail?id=' + id);
+    // 编辑表单始终操作中文原文
+    const data = await api('/api/culture/detail?id=' + id + '&lang=zh');
     if (data) openModal(data);
 }
 
@@ -247,6 +251,9 @@ function deleteItem(id) {
         if (data !== null) { showToast('删除成功'); loadData(currentPage); }
     });
 }
+
+// 切换语言或上传译文后，按与用户端相同的语言口径刷新列表
+document.addEventListener('adminlangchange', () => loadData(currentPage));
 
 loadCategories();
 loadData(1);

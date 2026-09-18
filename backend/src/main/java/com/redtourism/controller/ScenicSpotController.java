@@ -1,6 +1,7 @@
 package com.redtourism.controller;
 
 import com.baomidou.mybatisplus.core.metadata.IPage;
+import com.redtourism.common.I18nUtil;
 import com.redtourism.common.Result;
 import com.redtourism.entity.ScenicSpot;
 import com.redtourism.entity.ScenicSpotImage;
@@ -46,18 +47,26 @@ public class ScenicSpotController {
     }
 
     @GetMapping("/carousel")
-    public Result<List<ScenicSpot>> carousel() {
-        return Result.success(spotService.getCarousel());
+    public Result<List<ScenicSpot>> carousel(@RequestParam(required = false, defaultValue = "zh") String lang) {
+        List<ScenicSpot> list = spotService.getCarousel();
+        list.forEach(s -> applyLang(s, lang));
+        return Result.success(list);
     }
 
     @GetMapping("/related")
-    public Result<List<ScenicSpot>> related(@RequestParam Long id) {
-        return Result.success(spotService.getRelated(id));
+    public Result<List<ScenicSpot>> related(@RequestParam Long id,
+                                             @RequestParam(required = false, defaultValue = "zh") String lang) {
+        List<ScenicSpot> list = spotService.getRelated(id);
+        list.forEach(s -> applyLang(s, lang));
+        return Result.success(list);
     }
 
     @GetMapping("/hot")
-    public Result<List<ScenicSpot>> hot(@RequestParam(defaultValue = "10") int limit) {
-        return Result.success(spotService.getHot(limit));
+    public Result<List<ScenicSpot>> hot(@RequestParam(defaultValue = "10") int limit,
+                                         @RequestParam(required = false, defaultValue = "zh") String lang) {
+        List<ScenicSpot> list = spotService.getHot(limit);
+        list.forEach(s -> applyLang(s, lang));
+        return Result.success(list);
     }
 
     @GetMapping("/search")
@@ -86,19 +95,16 @@ public class ScenicSpotController {
         return Result.success(themes);
     }
 
-    private void applyLang(ScenicSpot s, String lang) {
-        if ("en".equals(lang)) {
-            if (s.getNameEn() != null && !s.getNameEn().isEmpty()) s.setName(s.getNameEn());
-            if (s.getDescriptionEn() != null && !s.getDescriptionEn().isEmpty()) s.setDescription(s.getDescriptionEn());
-            if (s.getTicketReservationEn() != null && !s.getTicketReservationEn().isEmpty()) s.setTicketReservation(s.getTicketReservationEn());
-            if (s.getSuggestedDurationEn() != null && !s.getSuggestedDurationEn().isEmpty()) s.setSuggestedDuration(s.getSuggestedDurationEn());
-            if (s.getItemsToBringEn() != null && !s.getItemsToBringEn().isEmpty()) s.setItemsToBring(s.getItemsToBringEn());
-        } else if ("ja".equals(lang)) {
-            if (s.getNameJa() != null && !s.getNameJa().isEmpty()) s.setName(s.getNameJa());
-            if (s.getDescriptionJa() != null && !s.getDescriptionJa().isEmpty()) s.setDescription(s.getDescriptionJa());
-            if (s.getTicketReservationJa() != null && !s.getTicketReservationJa().isEmpty()) s.setTicketReservation(s.getTicketReservationJa());
-            if (s.getSuggestedDurationJa() != null && !s.getSuggestedDurationJa().isEmpty()) s.setSuggestedDuration(s.getSuggestedDurationJa());
-            if (s.getItemsToBringJa() != null && !s.getItemsToBringJa().isEmpty()) s.setItemsToBring(s.getItemsToBringJa());
-        }
+    /**
+     * 统一多语言口径：译文非空则覆盖中文字段；译文缺失则保留中文并记录回退标记，
+     * 由前端在对应字段上标注“中文”。列表、详情共用同一套规则。
+     */
+    static void applyLang(ScenicSpot s, String lang) {
+        I18nUtil.applyFields(s, lang,
+                new String[]{"name", "nameEn", "nameJa"},
+                new String[]{"description", "descriptionEn", "descriptionJa"},
+                new String[]{"ticketReservation", "ticketReservationEn", "ticketReservationJa"},
+                new String[]{"suggestedDuration", "suggestedDurationEn", "suggestedDurationJa"},
+                new String[]{"itemsToBring", "itemsToBringEn", "itemsToBringJa"});
     }
 }

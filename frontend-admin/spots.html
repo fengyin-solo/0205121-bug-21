@@ -40,7 +40,10 @@
             <div class="card">
                 <div class="card-header">
                     <h2>景点列表</h2>
-                    <button class="btn btn-primary" onclick="openModal()"><i class="fas fa-plus"></i> 新增景点</button>
+                    <div class="action-btns" style="display:flex;gap:8px">
+                        <button class="btn btn-default" onclick="openTranslationModal('spot')"><i class="fas fa-language"></i> 上传译文</button>
+                        <button class="btn btn-primary" onclick="openModal()"><i class="fas fa-plus"></i> 新增景点</button>
+                    </div>
                 </div>
                 <div class="table-wrapper">
                     <table>
@@ -122,7 +125,7 @@ async function loadData(page) {
         h += `<tr>
             <td>${s.id}</td>
             <td>${cover}</td>
-            <td>${escHtml(s.name)}</td>
+            <td>${escHtml(s.name)}${fallbackBadge(s, 'name')}</td>
             <td>${escHtml(s.region || '-')}</td>
             <td>${escHtml(s.theme || '-')}</td>
             <td>${s.ticketPrice != null ? '¥' + s.ticketPrice : '-'}</td>
@@ -166,7 +169,8 @@ function openModal(item) {
 function closeModal() { document.getElementById('formModal').classList.remove('active'); }
 
 async function editItem(id) {
-    const data = await api('/api/spot/detail?id=' + id);
+    // 编辑表单始终操作中文原文，避免把当前语言译文写回中文字段
+    const data = await api('/api/spot/detail?id=' + id + '&lang=zh');
     if (data) openModal(data);
 }
 
@@ -208,6 +212,9 @@ function deleteItem(id) {
         if (data !== null) { showToast('删除成功'); loadData(currentPage); }
     });
 }
+
+// 切换语言或上传译文后，按与用户端相同的语言口径刷新列表
+document.addEventListener('adminlangchange', () => loadData(currentPage));
 
 loadData(1);
 </script>

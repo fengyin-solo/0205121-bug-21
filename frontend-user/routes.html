@@ -96,16 +96,17 @@ async function loadRoutes(page) {
     grid.innerHTML = list.map(r => `
         <div class="card" onclick="location.href='route-detail.html?id=${r.id}'">
             <div class="card-img">
-                ${r.coverImage ? `<img src="${API + r.coverImage}" alt="${r.name}" onerror="imgError(this)">` : ''}
+                ${r.coverImage ? `<img src="${API + r.coverImage}" alt="${escHtml(r.name)}" onerror="imgError(this)">` : ''}
                 <div class="placeholder-icon"><i class="fas fa-route"></i></div>
-                ${r.theme ? `<span class="card-tag">${r.theme}</span>` : ''}
+                ${r.theme ? `<span class="card-tag">${escHtml(r.theme)}</span>` : ''}
             </div>
             <div class="card-body">
-                <h3>${r.name || ''}</h3>
+                <h3>${escHtml(r.name) || ''}${fallbackBadge(r, 'name')}</h3>
                 <p style="display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-bottom:10px">
-                    <span class="tag tag-red"><i class="fas fa-calendar-day"></i> ${r.days || 0}天</span>
+                    <span class="tag tag-red"><i class="fas fa-calendar-day"></i> ${r.days || 0}${t('day')}</span>
                     ${r.budget ? `<span class="tag tag-gold"><i class="fas fa-yen-sign"></i> ¥${r.budget}</span>` : ''}
                 </p>
+                <p>${escHtml(r.description) || ''}${fallbackBadge(r, 'description')}</p>
                 <div class="card-meta">
                     <span><i class="fas fa-eye"></i> ${r.viewCount || 0}</span>
                 </div>
@@ -117,6 +118,9 @@ async function loadRoutes(page) {
 }
 
 document.getElementById('filterKeyword').addEventListener('keyup', e => { if (e.key === 'Enter') loadRoutes(1); });
+
+// 切换语言后按新语言重新加载列表（主题为固定中文枚举，无需重建下拉框）
+document.addEventListener('langchange', () => { loadRoutes(currentPage); });
 
 initFilters();
 loadRoutes(1);

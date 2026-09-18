@@ -269,3 +269,17 @@ select.form-control {
     .filter-bar .form-control, .filter-bar select.form-control { width: 100%; }
     .modal { width: 95vw; }
 }
+
+/* 顶栏多语言切换 */
+.admin-lang{display:inline-flex;align-items:center;gap:6px;margin-right:16px;font-size:13px;color:#666}
+.admin-lang select{padding:4px 8px;border:1px solid #ddd;border-radius:4px;font-size:13px;background:#fff}
+
+/* 多语言回退标记：后台列表与用户端口径一致，缺译文显示中文时标注 */
+.lang-fallback-tag{display:inline-block;vertical-align:middle;background:#FFF3E0;color:#B26A00;border:1px solid #FFD591;border-radius:4px;padding:0 6px;font-size:11px;font-weight:600;line-height:1.6;margin-left:4px;white-space:nowrap}
+
+/* 译文上传提示与结果 */
+.form-tip{font-size:12px;color:#888;line-height:1.7;margin:6px 0}
+.form-tip a{color:#C41A1A}
+.tr-result{margin-top:12px;padding:10px 12px;border-radius:4px;font-size:13px;line-height:1.6}
+.tr-result-ok{background:#f6ffed;border:1px solid #b7eb8f;color:#389e0d}
+.tr-result-err{background:#fff2f0;border:1px solid #ffccc7;color:#cf1322}
