@@ -206,15 +206,15 @@ if (!routeId) { location.href = 'routes.html'; }
 
 function renderRouteContent() {
     if (!routeData) return;
-    const name = getLang(routeData, 'name') || routeData.name;
-    const desc = getLang(routeData, 'description') || routeData.description || '--';
+    const name = routeData.name || '';
+    const desc = routeData.description || '--';
     document.title = name + ' - 贵州红色旅游';
-    document.getElementById('routeName').textContent = name;
+    document.getElementById('routeName').innerHTML = name + fallbackNote(routeData);
     document.getElementById('routeDesc').innerHTML = desc.split('\n').map(p => `<p>${p}</p>`).join('');
 }
 
 async function loadDetail() {
-    routeData = await api(`/api/route/detail?id=${routeId}`);
+    routeData = await api(`/api/route/detail?id=${routeId}&refresh=true`);
     if (!routeData) { document.getElementById('routeName').textContent = '线路不存在'; return; }
 
     document.getElementById('routeDays').innerHTML = `<i class="fas fa-calendar-day"></i> ${routeData.days || 0} 天`;
@@ -240,7 +240,8 @@ async function loadDetail() {
     renderRouteContent();
 }
 
-document.addEventListener('langchange', () => { renderRouteContent(); });
+// 切换语言时重新拉取详情与行程（服务端按 lang 返回）
+document.addEventListener('langchange', () => { loadDetail(); loadRouteSpots(); });
 
 async function loadRouteSpots() {
     const spots = await api(`/api/route/spots?routeId=${routeId}`);
@@ -263,12 +264,12 @@ async function loadRouteSpots() {
         html += `<div class="timeline-day"><h4>第${day}天</h4>`;
         grouped[day].forEach((s, idx) => {
             globalIdx++;
-            const name = getLang(s, 'spotName') || s.spotName || s.name || '景点';
+            const name = s.spotName || s.name || '景点';
             html += `
                 <div class="timeline-spot" ${s.spotId ? `onclick="location.href='spot-detail.html?id=${s.spotId}'" style="cursor:pointer"` : ''}>
                     <div class="spot-order">${globalIdx}</div>
                     <div class="spot-info">
-                        <h5>${name}</h5>
+                        <h5>${name}${fallbackNote(s)}</h5>
                         <p>${s.description || s.remark || ''}</p>
                     </div>
                 </div>`;
@@ -287,7 +288,12 @@ function initRouteMap(spots) {
 
     document.getElementById('routeMapSection').style.display = 'block';
 
+    // 切换语言重新加载时销毁旧地图，避免 Leaflet 重复初始化告警
+    const container = document.getElementById('routeMap');
+    if (container._leaflet_id) { try { container._leafletMap.remove(); } catch (e) {} container.innerHTML = ''; }
+
     const map = L.map('routeMap', { scrollWheelZoom: false });
+    container._leafletMap = map;
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
         attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
         maxZoom: 18
@@ -317,7 +323,7 @@ function initRouteMap(spots) {
             iconAnchor: [13, 13]
         });
 
-        const name = getLang(s, 'spotName') || s.spotName || '景点';
+        const name = s.spotName || '景点';
         L.marker(latlng, { icon })
             .addTo(map)
             .bindPopup(`<b>${name}</b><br><span style="font-size:12px;color:#666">第${s.dayNumber || 1}天</span>`);

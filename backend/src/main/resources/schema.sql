@@ -141,7 +141,11 @@ CREATE TABLE IF NOT EXISTS hotel (
 CREATE TABLE IF NOT EXISTS food (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
     name VARCHAR(100) NOT NULL,
+    name_en VARCHAR(200),
+    name_ja VARCHAR(200),
     description TEXT,
+    description_en TEXT,
+    description_ja TEXT,
     category VARCHAR(50),
     price DECIMAL(10,2),
     cover_image VARCHAR(255),

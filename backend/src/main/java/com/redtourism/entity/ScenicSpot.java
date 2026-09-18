@@ -46,6 +46,11 @@ public class ScenicSpot implements Serializable {
     private String itemsToBring;
     private String itemsToBringEn;
     private String itemsToBringJa;
+
+    /** 非数据库列：当前请求语言下是否有字段回退到了中文（true=译文缺失，展示的是中文） */
+    @TableField(exist = false)
+    private Boolean langFallback;
+
     @TableField(fill = FieldFill.INSERT)
     private Date createTime;
     @TableField(fill = FieldFill.INSERT_UPDATE)

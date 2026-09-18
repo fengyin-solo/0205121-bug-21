@@ -276,6 +276,58 @@ UPDATE culture_content SET
   content_ja = '四渡赤水戦役は遵義会議後、中央紅軍が国民党数十万の重兵に包囲された険しい状況の中で展開した決定的な運動戦戦役です。毛沢東の指揮のもと、紅軍は川貴滇境界広大地域で赤水河を四度往復し、敵の包囲追撃を見事に打ち破りました。'
 WHERE id = 2;
 
+-- =============================================
+-- 多语言内容：EN / JA 译文（美食）
+-- =============================================
+UPDATE food SET
+  name_en = 'Zunyi Mutton Rice Noodles',
+  description_en = 'One of Guizhou\'s three famous rice noodle dishes, featuring fresh mutton broth, sliced mutton, and rice noodles, savory and delicious.',
+  name_ja = '遵義羊肉粉',
+  description_ja = '貴州三大名粉の一つ。新鮮な羊肉で取ったスープにスライス羊肉と米粉を合わせた、香り高く美味しい麺料理です。'
+WHERE id = 1;
+
+UPDATE food SET
+  name_en = 'Huaxi Beef Rice Noodles',
+  description_en = 'A signature dish of Guiyang: premium beef slow-simmered into a rich broth with smooth rice noodles.',
+  name_ja = '花溪牛肉粉',
+  description_ja = '貴陽を代表するグルメ。厳選した牛肉をじっくり煮込んだ濃厚なスープと、のどごしの良い米粉が特徴です。'
+WHERE id = 2;
+
+UPDATE food SET
+  name_en = 'Sour Soup Fish',
+  description_en = 'A traditional Miao ethnic dish made with Kaili red sour soup; the fish is tender, hot and sour, and appetizing.',
+  name_ja = '酸湯魚（スァンタンユー）',
+  description_ja = 'ミャオ族の伝統料理。凱里の赤い酸湯をベースに、魚の身が柔らかく、酸辣で食欲をそそる貴州を代表する料理です。'
+WHERE id = 3;
+
+UPDATE food SET
+  name_en = 'Silk Dolls (Siwawa)',
+  description_en = 'A famous Guiyang snack: thin pancakes wrapped around assorted shredded vegetables with a special chili dipping sauce.',
+  name_ja = '絲娃娃（スーワーワー）',
+  description_ja = '貴陽の名物料理。薄い皮に千切り野菜を包み、特製の辛いタレをつけて食べる、さっぱりとした味わいです。'
+WHERE id = 4;
+
+UPDATE food SET
+  name_en = 'Tunpu Spicy Chicken',
+  description_en = 'A traditional Anshun Tunpu dish: free-range chicken stir-fried with glutinous rice cake chili, fragrant and numbing-spicy.',
+  name_ja = '屯堡辣子鶏',
+  description_ja = '安順屯堡の伝統料理。地鶏を糍粑（もち米）唐辛子で強火炒めした、麻辣の香り高い一品です。'
+WHERE id = 5;
+
+UPDATE food SET
+  name_en = 'Tofu Balls',
+  description_en = 'A Guiyang snack: deep-fried crispy tofu balls, crispy outside and tender inside, served with chili powder.',
+  name_ja = '豆腐団子',
+  description_ja = '貴陽の名物小吃。豆腐を丸めて揚げた団子で、外はサクサク中はふんわり、唐辛子粉をつけて食べます。'
+WHERE id = 6;
+
+UPDATE food SET
+  name_en = 'Changwang Noodles',
+  description_en = 'A Guiyang specialty noodle dish with pork intestines, blood curd, and crispy pork bits; springy noodles in savory broth.',
+  name_ja = '腸旺麺（チャンワンメン）',
+  description_ja = '貴陽の特色麺料理。ブタの大腸・血旺・揚げ豚を具材に、コシのある麺が特徴です。'
+WHERE id = 7;
+
 -- ============================================================
 -- 示例用户反馈
 -- ============================================================

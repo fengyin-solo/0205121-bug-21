@@ -1,6 +1,7 @@
 package com.redtourism.controller;
 
 import com.baomidou.mybatisplus.core.metadata.IPage;
+import com.redtourism.common.LangUtils;
 import com.redtourism.common.Result;
 import com.redtourism.entity.Route;
 import com.redtourism.entity.RouteSpot;
@@ -31,15 +32,20 @@ public class RouteController {
 
     @GetMapping("/detail")
     public Result<Route> detail(@RequestParam Long id,
-                                 @RequestParam(required = false, defaultValue = "zh") String lang) {
-        Route r = routeService.getDetail(id);
+                                 @RequestParam(required = false, defaultValue = "zh") String lang,
+                                 @RequestParam(required = false, defaultValue = "false") boolean refresh) {
+        // refresh=false（如切换语言重新拉取）不累加浏览量
+        Route r = refresh ? routeService.getDetail(id) : routeService.getById(id);
         if (r != null) applyLang(r, lang);
         return Result.success(r);
     }
 
     @GetMapping("/spots")
-    public Result<List<RouteSpot>> spots(@RequestParam Long routeId) {
-        return Result.success(routeService.getRouteSpots(routeId));
+    public Result<List<RouteSpot>> spots(@RequestParam Long routeId,
+                                         @RequestParam(required = false, defaultValue = "zh") String lang) {
+        List<RouteSpot> list = routeService.getRouteSpots(routeId);
+        list.forEach(rs -> applySpotLang(rs, lang));
+        return Result.success(list);
     }
 
     @GetMapping("/themes")
@@ -49,13 +55,29 @@ public class RouteController {
         return Result.success(themes);
     }
 
-    private void applyLang(Route r, String lang) {
-        if ("en".equals(lang)) {
-            if (r.getNameEn() != null && !r.getNameEn().isEmpty()) r.setName(r.getNameEn());
-            if (r.getDescriptionEn() != null && !r.getDescriptionEn().isEmpty()) r.setDescription(r.getDescriptionEn());
-        } else if ("ja".equals(lang)) {
-            if (r.getNameJa() != null && !r.getNameJa().isEmpty()) r.setName(r.getNameJa());
-            if (r.getDescriptionJa() != null && !r.getDescriptionJa().isEmpty()) r.setDescription(r.getDescriptionJa());
-        }
+    /**
+     * 按请求语言回填线路的可翻译字段；译文缺失回退中文并标记 langFallback。
+     */
+    public static void applyLang(Route r, String lang) {
+        if (r == null) return;
+        if (LangUtils.isZh(lang)) { r.setLangFallback(false); return; }
+        boolean en = LangUtils.EN.equals(LangUtils.normalize(lang));
+        boolean[] fb = new boolean[1];
+        boolean fallback = false;
+        r.setName(LangUtils.pick(lang, r.getName(), en ? r.getNameEn() : r.getNameJa(), fb));
+        fallback |= fb[0];
+        r.setDescription(LangUtils.pick(lang, r.getDescription(), en ? r.getDescriptionEn() : r.getDescriptionJa(), fb));
+        fallback |= fb[0];
+        r.setLangFallback(fallback);
+    }
+
+    /** 行程内景点名称同样按语言回填，保证与景点详情同语言呈现 */
+    private void applySpotLang(RouteSpot rs, String lang) {
+        if (rs == null) return;
+        if (LangUtils.isZh(lang)) { rs.setLangFallback(false); return; }
+        boolean en = LangUtils.EN.equals(LangUtils.normalize(lang));
+        boolean[] fb = new boolean[1];
+        rs.setSpotName(LangUtils.pick(lang, rs.getSpotName(), en ? rs.getSpotNameEn() : rs.getSpotNameJa(), fb));
+        rs.setLangFallback(fb[0]);
     }
 }

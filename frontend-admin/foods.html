@@ -34,7 +34,16 @@
         <header class="top-bar">
             <button class="menu-toggle" onclick="toggleSidebar()"><i class="fas fa-bars"></i></button>
             <h1>美食管理</h1>
-            <div class="top-bar-right"><span id="adminName"></span> <a href="#" onclick="doLogout()">退出</a></div>
+            <div class="top-bar-right">
+                <span class="admin-lang-switch"><i class="fas fa-language" style="color:#C41A1A"></i>
+                    <select id="adminLangSelect" onchange="switchAdminLang(this.value)">
+                        <option value="zh">中文</option>
+                        <option value="en">English</option>
+                        <option value="ja">日本語</option>
+                    </select>
+                </span>
+                <span id="adminName"></span> <a href="#" onclick="doLogout()">退出</a>
+            </div>
         </header>
         <div class="content">
             <div class="tabs">
@@ -46,7 +55,18 @@
                 <div class="card">
                     <div class="card-header">
                         <h2>美食列表</h2>
-                        <button class="btn btn-primary" onclick="openFoodModal()"><i class="fas fa-plus"></i> 新增美食</button>
+                        <div>
+                            <button class="btn btn-default" onclick="downloadTemplate()"><i class="fas fa-file-download"></i> 下载译文模板</button>
+                            <button class="btn btn-primary" onclick="document.getElementById('transFile').click()"><i class="fas fa-file-import"></i> 上传译文</button>
+                            <button class="btn btn-primary" onclick="openFoodModal()"><i class="fas fa-plus"></i> 新增美食</button>
+                            <input type="file" id="transFile" accept=".csv,text/csv" style="display:none" onchange="handleTranslateUpload(this)">
+                        </div>
+                    </div>
+                    <div class="translation-bar">
+                        <span><strong>批量译文：</strong></span>
+                        <span class="hint">语言</span>
+                        <select id="transLang"><option value="en">English</option><option value="ja">日本語</option></select>
+                        <span class="hint">上传 CSV（UTF-8，保留模板中的 ID 列，行顺序任意）；译文留空的字段将回退显示中文；重新上传会整体覆盖上一次结果。</span>
                     </div>
                     <div class="table-wrapper">
                         <table>
@@ -207,7 +227,7 @@ async function loadFoods(page) {
         h += `<tr>
             <td>${f.id}</td>
             <td>${cover}</td>
-            <td>${escHtml(f.name)}</td>
+            <td>${escHtml(f.name)}${fallbackNote(f)}</td>
             <td>${escHtml(f.category || '-')}</td>
             <td>${f.price != null ? '¥' + f.price : '-'}</td>
             <td>${escHtml(f.storeName || '-')}</td>
@@ -239,7 +259,7 @@ function openFoodModal(item) {
 function closeFoodModal() { document.getElementById('foodModal').classList.remove('active'); }
 
 async function editFood(id) {
-    const data = await api('/api/food/detail?id=' + id);
+    const data = await api('/api/food/detail?id=' + id + '&lang=zh');
     if (data) openFoodModal(data);
 }
 
@@ -285,7 +305,7 @@ function openStoreModal(item) {
 function closeStoreModal() { document.getElementById('storeModal').classList.remove('active'); }
 
 async function editStore(id) {
-    const data = await api('/api/food/store/detail?id=' + id);
+    const data = await api('/api/food/storeDetail?id=' + id);
     if (data) openStoreModal(data);
 }
 
@@ -313,6 +333,27 @@ function deleteStore(id) {
         if (data !== null) { showToast('删除成功'); loadStores(storePage); }
     });
 }
+
+/* ========== 批量译文 ========== */
+function downloadTemplate() {
+    const lang = document.getElementById('transLang').value;
+    window.open(API + '/api/admin/translation/template?type=food&lang=' + lang, '_blank');
+}
+
+async function handleTranslateUpload(input) {
+    const file = input.files[0];
+    input.value = '';
+    if (!file) return;
+    const lang = document.getElementById('transLang').value;
+    const res = await uploadTranslation(file, 'food', lang);
+    if (res.code !== 200) { showToast(res.msg || '译文导入失败', 'error'); return; }
+    const d = res.data || {};
+    showToast((res.msg || '导入成功') + '，' + (d.blankCells || 0) + ' 个字段留空将回退中文');
+    loadFoods(foodPage);
+}
+
+document.getElementById('adminLangSelect').value = currentLang;
+document.addEventListener('adminlangchange', () => loadFoods(foodPage));
 
 loadStores(1);
 loadFoods(1);

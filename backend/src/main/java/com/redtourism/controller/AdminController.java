@@ -145,6 +145,7 @@ public class AdminController {
     @GetMapping("/spot/list")
     public Result<IPage<ScenicSpot>> spotList(@RequestParam(defaultValue = "1") int page,
                                                @RequestParam(defaultValue = "10") int size,
+                                               @RequestParam(required = false, defaultValue = "zh") String lang,
                                                HttpSession session) {
         User operator = (User) session.getAttribute(Constants.SESSION_USER);
         if (operator == null) return Result.error(401, "请先登录");
@@ -153,7 +154,10 @@ public class AdminController {
             w.eq(ScenicSpot::getStaffId, operator.getId());
         }
         w.orderByDesc(ScenicSpot::getCreateTime);
-        return Result.success(spotService.page(new Page<>(page, size), w));
+        IPage<ScenicSpot> result = spotService.page(new Page<>(page, size), w);
+        // 与用户端相同的语言口径：列表按请求语言呈现，缺译文回退中文并标记
+        result.getRecords().forEach(s -> ScenicSpotController.applyLang(s, lang));
+        return Result.success(result);
     }
 
     @GetMapping("/spot/save")

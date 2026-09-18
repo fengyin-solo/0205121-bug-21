@@ -164,7 +164,7 @@ function updateSubtotal() {
 async function loadDetail() {
     food = await api('/api/food/detail?id=' + foodId);
     if (!food) { document.getElementById('foodDesc').innerHTML = '<p>美食不存在</p>'; return; }
-    document.getElementById('foodName').textContent = food.name || '';
+    document.getElementById('foodName').innerHTML = (food.name || '') + fallbackNote(food);
     document.getElementById('foodCategory').innerHTML = '<i class="fas fa-tag"></i> ' + (food.category || '');
     document.getElementById('foodPrice').innerHTML = '¥' + (food.price || 0);
     var coverEl = document.getElementById('foodCover');
@@ -178,6 +178,9 @@ async function loadDetail() {
     if (food.storeId) loadStore(food.storeId);
     if (food.category) loadRelated(food.category);
 }
+
+// 切换语言时重新拉取详情与同类推荐
+document.addEventListener('langchange', () => { if (foodId) loadDetail(); });
 
 async function loadStore(storeId) {
     var store = await api('/api/food/storeDetail?id=' + storeId);
@@ -208,7 +211,7 @@ async function loadRelated(category) {
                 (f.coverImage ? '<img src="' + API + f.coverImage + '" style="width:100%;height:100%;object-fit:cover" onerror="imgError(this)">' : '') +
             '</div>' +
             '<div style="flex:1;min-width:0">' +
-                '<div style="font-weight:600;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">' + (f.name || '') + '</div>' +
+                '<div style="font-weight:600;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">' + (f.name || '') + fallbackNote(f) + '</div>' +
                 '<div style="font-size:12px;color:var(--red);margin-top:4px;font-weight:600">¥' + (f.price || 0) + '</div>' +
             '</div>' +
         '</a>';

@@ -2,12 +2,46 @@
 const API = (window.location.port === '8083' || window.location.port === '80' || window.location.port === '') && window.location.protocol !== 'file:'
     ? '' : 'http://localhost:8089';
 
+/* ========== i18n（语言设置须先于 api() 定义，供其自动附带 lang 参数） ========== */
+let currentLang = localStorage.getItem('lang') || 'zh';
+
+/**
+ * 需要跟随界面语言的内容接口。
+ * 语言选择保存在 localStorage（key: lang），所有页面读取同一份设置，
+ * 这些接口统一自动附带 lang 参数，保证列表与详情始终同一种语言呈现。
+ */
+const LANG_API_PREFIXES = [
+    '/api/spot/',
+    '/api/route/',
+    '/api/culture/',
+    '/api/food/list',
+    '/api/food/detail'
+];
+
+function needsLang(path) {
+    // 去掉查询串后再匹配，避免把带参数的非内容接口误判
+    const p = path.split('?')[0];
+    if (p === '/api/food/list' || p === '/api/food/detail') return true;
+    return LANG_API_PREFIXES.slice(0, 3).some(prefix => p.indexOf(prefix) === 0);
+}
+
 async function api(path) {
+    if (needsLang(path) && !/[?&]lang=/.test(path)) {
+        path += (path.includes('?') ? '&' : '?') + 'lang=' + encodeURIComponent(currentLang);
+    }
     const res = await fetch(API + path, { credentials: 'include' });
     const data = await res.json();
     if (data.code === 401) { clearUser(); showToast('请先登录', 'error'); setTimeout(() => location.href = 'login.html', 1000); return null; }
     if (data.code !== 200) { showToast(data.msg || '请求失败', 'error'); return null; }
     return (data.data !== null && data.data !== undefined) ? data.data : true;
+}
+
+async function apiRaw(path) {
+    if (needsLang(path) && !/[?&]lang=/.test(path)) {
+        path += (path.includes('?') ? '&' : '?') + 'lang=' + encodeURIComponent(currentLang);
+    }
+    const res = await fetch(API + path, { credentials: 'include' });
+    return await res.json();
 }
 
 function showConfirm(msg, onOk) {
@@ -28,11 +62,6 @@ function showConfirm(msg, onOk) {
     document.getElementById(id + 'c').onclick = () => div.remove();
     document.getElementById(id + 'k').onclick = () => { div.remove(); onOk && onOk(); };
     div.onclick = (e) => { if (e.target === div) div.remove(); };
-}
-
-async function apiRaw(path) {
-    const res = await fetch(API + path, { credentials: 'include' });
-    return await res.json();
 }
 
 function getParam(k) { return new URLSearchParams(location.search).get(k); }
@@ -106,19 +135,23 @@ const LANG = {
         footer:'© 2026 貴州赤色文化観光管理システム'
     }
 };
-let currentLang = localStorage.getItem('lang') || 'zh';
 function t(key) { return (LANG[currentLang] || LANG.zh)[key] || key; }
-function switchLang(lang) {
+function switchLang(lang, silent) {
     currentLang = lang; localStorage.setItem('lang', lang);
+    document.documentElement.lang = lang === 'zh' ? 'zh' : lang;
     document.querySelectorAll('[data-i18n]').forEach(el => { el.textContent = t(el.dataset.i18n); });
     document.querySelectorAll('[data-i18n-placeholder]').forEach(el => { el.placeholder = t(el.dataset.i18nPlaceholder); });
     const sel = document.getElementById('langSelect'); if (sel) sel.value = lang;
+    // 页面初始化时只做静态文案同步，不触发业务数据刷新（数据本身已按 lang 拉取），避免重复请求
+    if (silent) return;
     // 触发全局语言变更事件，供各页面刷新业务数据内容
     document.dispatchEvent(new CustomEvent('langchange', { detail: lang }));
 }
 
 /**
- * 从业务数据对象中获取当前语言的字段值。
+ * 从业务数据对象中获取当前语言的字段值（客户端兜底）。
+ * 服务端列表/详情已按 lang 参数返回对应语言并在缺译文时回退中文，
+ * 此函数保留用于个别不走内容接口的场景。
  * 例如 getLang(spot, 'name') 在英文环境下返回 spot.nameEn（若有），否则回退到 spot.name。
  */
 function getLang(obj, field) {
@@ -129,6 +162,13 @@ function getLang(obj, field) {
         if (val) return val;
     }
     return obj[field] || '';
+}
+
+/** 译文缺失回退提示标记：服务端对缺译文的记录会返回 langFallback=true */
+function fallbackNote(obj) {
+    if (currentLang === 'zh' || !obj || !obj.langFallback) return '';
+    const label = currentLang === 'en' ? 'Chinese' : '中国語';
+    return '<span class="lang-fallback-tag" title="' + label + '"><i class="fas fa-language"></i> ' + label + '</span>';
 }
 
 /* ========== UI Helpers ========== */
@@ -231,7 +271,7 @@ function startSessionWatcher() {
 /* ========== Init ========== */
 document.addEventListener('DOMContentLoaded', () => {
     renderHeader();
-    switchLang(currentLang);
+    switchLang(currentLang, true);
     startSessionWatcher();
     document.addEventListener('click', e => {
         if (!e.target.closest('.user-dropdown')) document.querySelectorAll('.dropdown-menu').forEach(m => m.classList.remove('show'));

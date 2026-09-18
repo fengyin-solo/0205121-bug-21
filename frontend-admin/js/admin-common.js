@@ -1,11 +1,64 @@
 const API = (window.location.port === '8084' || window.location.port === '81') && window.location.protocol !== 'file:' ? '' : 'http://localhost:8089';
 
+/* ========== 多语言（与游客端共用 localStorage 的 lang 键，语言口径保持一致） ========== */
+let currentLang = localStorage.getItem('lang') || 'zh';
+
+/** 内容类接口与游客端一致，统一附带 lang 参数，列表按所选语言呈现 */
+const LANG_API_EXACT = ['/api/food/list', '/api/food/detail'];
+const LANG_API_PREFIXES = [
+    '/api/spot/',
+    '/api/route/',
+    '/api/culture/',
+    '/api/admin/spot/list'
+];
+
+function needsLang(path) {
+    const p = path.split('?')[0];
+    if (LANG_API_EXACT.indexOf(p) >= 0) return true;
+    return LANG_API_PREFIXES.some(prefix => p.indexOf(prefix) === 0);
+}
+
 async function api(path) {
+    // 编辑表单必须读取中文原文，显式带 lang=zh 可关闭语言回填
+    if (needsLang(path) && !/[?&]lang=/.test(path)) {
+        path += (path.includes('?') ? '&' : '?') + 'lang=' + encodeURIComponent(currentLang);
+    }
     const res = await fetch(API + path, { credentials: 'include' });
     const data = await res.json();
     if (data.code === 401) { showToast('请先登录', 'error'); setTimeout(() => location.href = 'login.html', 1000); return null; }
     if (data.code !== 200) { showToast(data.msg || '操作失败', 'error'); return null; }
     return (data.data !== null && data.data !== undefined) ? data.data : true;
+}
+
+function switchAdminLang(lang) {
+    currentLang = lang;
+    localStorage.setItem('lang', lang);
+    const sel = document.getElementById('adminLangSelect');
+    if (sel) sel.value = lang;
+    document.dispatchEvent(new CustomEvent('adminlangchange', { detail: lang }));
+}
+
+/** 译文缺失回退中文标记（与游客端相同判定） */
+function fallbackNote(obj) {
+    if (currentLang === 'zh' || !obj || !obj.langFallback) return '';
+    const label = currentLang === 'en' ? 'Chinese' : '中国語';
+    return '<span class="lang-fallback-tag" title="' + label + '"><i class="fas fa-language"></i> ' + label + '</span>';
+}
+
+/** POST 上传译文文件（multipart/form-data） */
+async function uploadTranslation(file, type, lang) {
+    const fd = new FormData();
+    fd.append('file', file);
+    fd.append('type', type);
+    fd.append('lang', lang);
+    try {
+        const res = await fetch(API + '/api/admin/translation/import', {
+            method: 'POST', body: fd, credentials: 'include'
+        });
+        return await res.json();
+    } catch (e) {
+        return { code: 500, msg: '上传失败：' + e.message };
+    }
 }
 
 function showConfirm(msg, onOk) {

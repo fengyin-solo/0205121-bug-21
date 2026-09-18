@@ -108,10 +108,10 @@ async function loadSpots(page) {
                 ${s.theme ? `<span class="card-tag">${s.theme}</span>` : ''}
             </div>
             <div class="card-body">
-                <h3>${s.name || ''}</h3>
+                <h3>${s.name || ''}${fallbackNote(s)}</h3>
                 <p>${s.description || ''}</p>
                 <div class="card-meta">
-                    <span class="card-price">${s.ticketPrice > 0 ? '¥' + s.ticketPrice : '免费'}</span>
+                    <span class="card-price">${s.ticketPrice > 0 ? '¥' + s.ticketPrice : t('free')}</span>
                     <span><i class="fas fa-eye"></i> ${s.viewCount || 0}</span>
                 </div>
                 <div class="card-rating" style="margin-top:6px">${renderStars(Math.round(s.avgRating || 0))}</div>
@@ -123,6 +123,8 @@ async function loadSpots(page) {
 }
 
 document.getElementById('filterKeyword').addEventListener('keyup', e => { if (e.key === 'Enter') loadSpots(1); });
+// 切换语言时按当前筛选条件重新加载，保证列表与详情同一语言
+document.addEventListener('langchange', () => loadSpots(currentPage));
 
 initFilters();
 loadSpots(1);

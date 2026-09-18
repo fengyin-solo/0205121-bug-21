@@ -101,9 +101,10 @@ async function loadRoutes(page) {
                 ${r.theme ? `<span class="card-tag">${r.theme}</span>` : ''}
             </div>
             <div class="card-body">
-                <h3>${r.name || ''}</h3>
+                <h3>${r.name || ''}${fallbackNote(r)}</h3>
+                <p>${r.description || ''}</p>
                 <p style="display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-bottom:10px">
-                    <span class="tag tag-red"><i class="fas fa-calendar-day"></i> ${r.days || 0}天</span>
+                    <span class="tag tag-red"><i class="fas fa-calendar-day"></i> ${r.days || 0}${t('day')}</span>
                     ${r.budget ? `<span class="tag tag-gold"><i class="fas fa-yen-sign"></i> ¥${r.budget}</span>` : ''}
                 </p>
                 <div class="card-meta">
@@ -117,6 +118,8 @@ async function loadRoutes(page) {
 }
 
 document.getElementById('filterKeyword').addEventListener('keyup', e => { if (e.key === 'Enter') loadRoutes(1); });
+// 切换语言时按当前筛选条件重新加载
+document.addEventListener('langchange', () => loadRoutes(currentPage));
 
 initFilters();
 loadRoutes(1);

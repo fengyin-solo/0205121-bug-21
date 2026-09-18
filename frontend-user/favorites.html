@@ -131,12 +131,12 @@ async function loadFavorites() {
         const desc = item.description || item.intro || item.content || '';
         const location = item.location || item.region || '';
         const theme = item.theme || item.category || '';
-        const price = item.ticketPrice !== undefined ? (item.ticketPrice > 0 ? '¥' + item.ticketPrice : '免费') : (item.budget ? '预算 ¥' + item.budget : '');
+        const price = item.ticketPrice !== undefined ? (item.ticketPrice > 0 ? '¥' + item.ticketPrice : t('free')) : (item.budget ? t('budget') + ' ¥' + item.budget : '');
         return '<div class="fav-item">' +
             '<div class="fav-item-img">' + (imgSrc ? '<img src="' + imgSrc + '" onerror="imgError(this)" alt="' + name + '">' : '') + '</div>' +
             '<div class="fav-item-body">' +
                 '<div>' +
-                    '<div class="fav-item-title"><a href="' + getDetailPage(currentType) + item.id + '">' + name + '</a></div>' +
+                    '<div class="fav-item-title"><a href="' + getDetailPage(currentType) + item.id + '">' + name + '</a>' + fallbackNote(item) + '</div>' +
                     '<div class="fav-item-desc">' + desc + '</div>' +
                 '</div>' +
                 '<div class="fav-item-footer">' +
@@ -162,6 +162,8 @@ async function removeFav(id, type) {
 
 renderSidebar();
 loadFavorites();
+// 切换语言时重新拉取收藏详情（名称/简介跟随语言）
+document.addEventListener('langchange', () => loadFavorites());
 </script>
 </body>
 </html>

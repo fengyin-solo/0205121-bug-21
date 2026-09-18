@@ -105,15 +105,15 @@ let cultureData = null;
 
 function renderCultureContent() {
     if (!cultureData) return;
-    const title = getLang(cultureData, 'title') || cultureData.title;
-    const content = getLang(cultureData, 'content') || cultureData.content || '';
+    const title = cultureData.title || '';
+    const content = cultureData.content || '';
     document.title = title + ' - 贵州红色旅游';
-    document.getElementById('cultureTitle').textContent = title;
+    document.getElementById('cultureTitle').innerHTML = title + fallbackNote(cultureData);
     document.getElementById('cultureContent').innerHTML = content.includes('<') ? content : content.split('\n').map(p => `<p>${p}</p>`).join('');
 }
 
 async function loadDetail() {
-    cultureData = await api(`/api/culture/detail?id=${cultureId}`);
+    cultureData = await api(`/api/culture/detail?id=${cultureId}&refresh=true`);
     if (!cultureData) { document.getElementById('cultureTitle').textContent = '内容不存在'; return; }
 
     document.getElementById('cultureAuthor').innerHTML = `<i class="fas fa-user"></i> ${cultureData.author || '佚名'}`;
@@ -128,7 +128,7 @@ async function loadDetail() {
     renderCultureContent();
 }
 
-document.addEventListener('langchange', () => { renderCultureContent(); });
+document.addEventListener('langchange', () => { loadDetail(); });
 
 async function loadLikeCount() {
     const res = await api(`/api/like/count?targetType=CULTURE&targetId=${cultureId}`);

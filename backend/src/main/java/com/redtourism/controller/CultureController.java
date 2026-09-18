@@ -1,6 +1,7 @@
 package com.redtourism.controller;
 
 import com.baomidou.mybatisplus.core.metadata.IPage;
+import com.redtourism.common.LangUtils;
 import com.redtourism.common.Result;
 import com.redtourism.entity.CultureCategory;
 import com.redtourism.entity.CultureContent;
@@ -30,8 +31,10 @@ public class CultureController {
 
     @GetMapping("/detail")
     public Result<CultureContent> detail(@RequestParam Long id,
-                                          @RequestParam(required = false, defaultValue = "zh") String lang) {
-        CultureContent c = cultureService.getDetail(id);
+                                          @RequestParam(required = false, defaultValue = "zh") String lang,
+                                          @RequestParam(required = false, defaultValue = "false") boolean refresh) {
+        // refresh=false（如切换语言重新拉取）不累加浏览量
+        CultureContent c = refresh ? cultureService.getDetail(id) : cultureService.getById(id);
         if (c != null) applyLang(c, lang);
         return Result.success(c);
     }
@@ -47,12 +50,15 @@ public class CultureController {
     }
 
     private void applyLang(CultureContent c, String lang) {
-        if ("en".equals(lang)) {
-            if (c.getTitleEn() != null && !c.getTitleEn().isEmpty()) c.setTitle(c.getTitleEn());
-            if (c.getContentEn() != null && !c.getContentEn().isEmpty()) c.setContent(c.getContentEn());
-        } else if ("ja".equals(lang)) {
-            if (c.getTitleJa() != null && !c.getTitleJa().isEmpty()) c.setTitle(c.getTitleJa());
-            if (c.getContentJa() != null && !c.getContentJa().isEmpty()) c.setContent(c.getContentJa());
-        }
+        if (c == null) return;
+        if (LangUtils.isZh(lang)) { c.setLangFallback(false); return; }
+        boolean en = LangUtils.EN.equals(LangUtils.normalize(lang));
+        boolean[] fb = new boolean[1];
+        boolean fallback = false;
+        c.setTitle(LangUtils.pick(lang, c.getTitle(), en ? c.getTitleEn() : c.getTitleJa(), fb));
+        fallback |= fb[0];
+        c.setContent(LangUtils.pick(lang, c.getContent(), en ? c.getContentEn() : c.getContentJa(), fb));
+        fallback |= fb[0];
+        c.setLangFallback(fallback);
     }
 }

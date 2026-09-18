@@ -14,11 +14,20 @@ public class Food implements Serializable {
     @TableId(type = IdType.AUTO)
     private Long id;
     private String name;
+    private String nameEn;
+    private String nameJa;
     private String description;
+    private String descriptionEn;
+    private String descriptionJa;
     private String category;
     private BigDecimal price;
     private String coverImage;
     private Long storeId;
+
+    /** 非数据库列：当前请求语言下是否有字段回退到了中文 */
+    @TableField(exist = false)
+    private Boolean langFallback;
+
     @TableField(fill = FieldFill.INSERT)
     private Date createTime;
     @TableField(fill = FieldFill.INSERT_UPDATE)

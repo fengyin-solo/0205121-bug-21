@@ -91,8 +91,7 @@ async function loadCarousel() {
                 '<p><i class="fas fa-map-marker-alt"></i> ' + (s.location || s.address || '') + '</p>' +
             '</div></div>' +
         '</div>'
-    ).join('');
-    document.getElementById('carouselDots').innerHTML = data.map((_, i) =>
+    ).join('');    document.getElementById('carouselDots').innerHTML = data.map((_, i) =>
         '<span class="' + (i === 0 ? 'active' : '') + '" onclick="carouselGo(' + i + ')"></span>'
     ).join('');
     resetCarouselTimer();
@@ -106,7 +105,7 @@ async function loadHotSpots() {
         '<a class="card" href="spot-detail.html?id=' + s.id + '">' +
             '<div class="card-img"><img src="' + API + (s.coverImage || '') + '" onerror="imgError(this)" alt=""></div>' +
             '<div class="card-body">' +
-                '<h3>' + (s.name || '') + '</h3>' +
+                '<h3>' + (s.name || '') + fallbackNote(s) + '</h3>' +
                 '<p>' + (s.description || s.intro || '') + '</p>' +
                 '<div class="card-meta">' +
                     '<span class="card-price">' + (s.ticketPrice > 0 ? '¥' + s.ticketPrice : '<small>' + t('free') + '</small>') + '</span>' +
@@ -126,7 +125,7 @@ async function loadRoutes() {
         '<a class="card" href="route-detail.html?id=' + r.id + '">' +
             '<div class="card-img"><img src="' + API + (r.coverImage || '') + '" onerror="imgError(this)" alt=""></div>' +
             '<div class="card-body">' +
-                '<h3>' + (r.name || '') + '</h3>' +
+                '<h3>' + (r.name || '') + fallbackNote(r) + '</h3>' +
                 '<p>' + (r.description || r.intro || '') + '</p>' +
                 '<div class="card-meta">' +
                     '<span class="card-price">' + (r.budget > 0 ? '¥' + r.budget : '<small>' + t('free') + '</small>') + '</span>' +
@@ -146,8 +145,7 @@ async function loadCulture() {
         '<a class="card" href="culture-detail.html?id=' + c.id + '">' +
             '<div class="card-img"><img src="' + API + (c.coverImage || '') + '" onerror="imgError(this)" alt=""></div>' +
             '<div class="card-body">' +
-                '<h3>' + (c.title || c.name || '') + '</h3>' +
-                '<p>' + (c.description || c.intro || '') + '</p>' +
+                '<h3>' + (c.title || c.name || '') + fallbackNote(c) + '</h3>' +
                 '<div class="card-meta">' +
                     '<span><i class="fas fa-eye"></i> ' + (c.viewCount || 0) + '</span>' +
                 '</div>' +
@@ -160,6 +158,13 @@ loadCarousel();
 loadHotSpots();
 loadRoutes();
 loadCulture();
+// 切换语言时重新拉取首页内容，保证各卡片与列表/详情同语言
+document.addEventListener('langchange', () => {
+    loadCarousel();
+    loadHotSpots();
+    loadRoutes();
+    loadCulture();
+});
 </script>
 </body>
 </html>

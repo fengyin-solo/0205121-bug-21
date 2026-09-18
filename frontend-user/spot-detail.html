@@ -286,11 +286,11 @@ if (!spotId) { location.href = 'spots.html'; }
 
 function renderSpotContent() {
     if (!spotData) return;
-    const name = getLang(spotData, 'name') || spotData.name;
-    const desc = getLang(spotData, 'description') || spotData.description || '';
+    const name = spotData.name || '';
+    const desc = spotData.description || '';
 
     document.title = name + ' - 贵州红色旅游';
-    document.getElementById('spotName').textContent = name;
+    document.getElementById('spotName').innerHTML = name + fallbackNote(spotData);
     document.getElementById('spotLocation').innerHTML = `<i class="fas fa-map-marker-alt"></i> ${spotData.location || '--'}`;
     document.getElementById('spotTheme').innerHTML = spotData.theme ? `<i class="fas fa-tag"></i> ${spotData.theme}` : '';
     if (!spotData.theme) document.getElementById('spotTheme').style.display = 'none';
@@ -310,7 +310,7 @@ function renderSpotContent() {
 }
 
 async function loadDetail() {
-    spotData = await api(`/api/spot/detail?id=${spotId}`);
+    spotData = await api(`/api/spot/detail?id=${spotId}&refresh=true`);
     if (!spotData) { document.getElementById('spotName').textContent = '景点不存在'; return; }
 
     const avgRating = parseFloat(spotData.avgRating || 0);
@@ -327,10 +327,11 @@ async function loadDetail() {
     const hasPrepData = spotData.ticketReservation || spotData.suggestedDuration || spotData.itemsToBring;
     if (hasPrepData) {
         document.getElementById('prepSection').style.display = 'block';
-        document.getElementById('prepTicket').textContent = spotData.ticketReservation || '暂无预约信息';
+        const note = fallbackNote(spotData);
+        document.getElementById('prepTicket').innerHTML = (spotData.ticketReservation || '暂无预约信息') + (spotData.ticketReservation ? note : '');
         document.getElementById('prepOpenTime').textContent = spotData.openTime || '--';
-        document.getElementById('prepDuration').textContent = spotData.suggestedDuration || '暂无建议';
-        document.getElementById('prepItems').textContent = spotData.itemsToBring || '暂无提醒';
+        document.getElementById('prepDuration').innerHTML = (spotData.suggestedDuration || '暂无建议') + (spotData.suggestedDuration ? note : '');
+        document.getElementById('prepItems').innerHTML = (spotData.itemsToBring || '暂无提醒') + (spotData.itemsToBring ? note : '');
     }
 
     // 门票按钮
@@ -343,6 +344,7 @@ async function loadDetail() {
     if (spotData.longitude && spotData.latitude) {
         document.getElementById('mapCard').style.display = 'block';
         document.getElementById('mapLink').href = 'https://uri.amap.com/marker?position=' + spotData.longitude + ',' + spotData.latitude + '&name=' + encodeURIComponent(spotData.name);
+        document.getElementById('spotMap').innerHTML = '';
         initSpotMap(spotData.latitude, spotData.longitude, spotData.name);
     }
 
@@ -350,8 +352,8 @@ async function loadDetail() {
     renderSpotContent();
 }
 
-// 切换语言时重渲染内容
-document.addEventListener('langchange', () => { renderSpotContent(); });
+// 切换语言时重新拉取详情与相关景点（服务端按 lang 返回，列表与详情同语言）
+document.addEventListener('langchange', () => { loadDetail(); loadRelated(); });
 
 /* ========== 预订 & 支付 ========== */
 function openBookModal() {
@@ -466,8 +468,8 @@ async function loadRelated() {
                 ${s.coverImage ? `<img src="${API + s.coverImage}" style="width:100%;height:100%;object-fit:cover" onerror="imgError(this)">` : '<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;color:rgba(255,255,255,.4)"><i class="fas fa-mountain"></i></div>'}
             </div>
             <div style="flex:1;min-width:0">
-                <div style="font-weight:600;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${s.name}</div>
-                <div style="font-size:12px;color:var(--text3);margin-top:4px">${s.ticketPrice > 0 ? '¥' + s.ticketPrice : '免费'}</div>
+                <div style="font-weight:600;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${s.name}${fallbackNote(s)}</div>
+                <div style="font-size:12px;color:var(--text3);margin-top:4px">${s.ticketPrice > 0 ? '¥' + s.ticketPrice : t('free')}</div>
             </div>
         </a>
     `).join('');

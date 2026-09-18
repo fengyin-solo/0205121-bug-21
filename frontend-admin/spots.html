@@ -34,13 +34,33 @@
         <header class="top-bar">
             <button class="menu-toggle" onclick="toggleSidebar()"><i class="fas fa-bars"></i></button>
             <h1>景点管理</h1>
-            <div class="top-bar-right"><span id="adminName"></span> <a href="#" onclick="doLogout()">退出</a></div>
+            <div class="top-bar-right">
+                <span class="admin-lang-switch"><i class="fas fa-language" style="color:#C41A1A"></i>
+                    <select id="adminLangSelect" onchange="switchAdminLang(this.value)">
+                        <option value="zh">中文</option>
+                        <option value="en">English</option>
+                        <option value="ja">日本語</option>
+                    </select>
+                </span>
+                <span id="adminName"></span> <a href="#" onclick="doLogout()">退出</a>
+            </div>
         </header>
         <div class="content">
             <div class="card">
                 <div class="card-header">
                     <h2>景点列表</h2>
-                    <button class="btn btn-primary" onclick="openModal()"><i class="fas fa-plus"></i> 新增景点</button>
+                    <div>
+                        <button class="btn btn-default" onclick="downloadTemplate()"><i class="fas fa-file-download"></i> 下载译文模板</button>
+                        <button class="btn btn-primary" onclick="document.getElementById('transFile').click()"><i class="fas fa-file-import"></i> 上传译文</button>
+                        <button class="btn btn-primary" onclick="openModal()"><i class="fas fa-plus"></i> 新增景点</button>
+                        <input type="file" id="transFile" accept=".csv,text/csv" style="display:none" onchange="handleTranslateUpload(this)">
+                    </div>
+                </div>
+                <div class="translation-bar">
+                    <span><strong>批量译文：</strong></span>
+                    <span class="hint">语言</span>
+                    <select id="transLang"><option value="en">English</option><option value="ja">日本語</option></select>
+                    <span class="hint">上传 CSV（UTF-8，保留模板中的 ID 列，行顺序任意）；译文留空的字段将回退显示中文；重新上传会整体覆盖上一次结果。</span>
                 </div>
                 <div class="table-wrapper">
                     <table>
@@ -122,7 +142,7 @@ async function loadData(page) {
         h += `<tr>
             <td>${s.id}</td>
             <td>${cover}</td>
-            <td>${escHtml(s.name)}</td>
+            <td>${escHtml(s.name)}${fallbackNote(s)}</td>
             <td>${escHtml(s.region || '-')}</td>
             <td>${escHtml(s.theme || '-')}</td>
             <td>${s.ticketPrice != null ? '¥' + s.ticketPrice : '-'}</td>
@@ -166,7 +186,7 @@ function openModal(item) {
 function closeModal() { document.getElementById('formModal').classList.remove('active'); }
 
 async function editItem(id) {
-    const data = await api('/api/spot/detail?id=' + id);
+    const data = await api('/api/spot/detail?id=' + id + '&lang=zh');
     if (data) openModal(data);
 }
 
@@ -208,6 +228,28 @@ function deleteItem(id) {
         if (data !== null) { showToast('删除成功'); loadData(currentPage); }
     });
 }
+
+/* ========== 批量译文（与游客端同语言口径） ========== */
+function downloadTemplate() {
+    const lang = document.getElementById('transLang').value;
+    window.open(API + '/api/admin/translation/template?type=spot&lang=' + lang, '_blank');
+}
+
+async function handleTranslateUpload(input) {
+    const file = input.files[0];
+    input.value = '';
+    if (!file) return;
+    const lang = document.getElementById('transLang').value;
+    const res = await uploadTranslation(file, 'spot', lang);
+    if (res.code !== 200) { showToast(res.msg || '译文导入失败', 'error'); return; }
+    const d = res.data || {};
+    showToast((res.msg || '导入成功') + '，' + (d.blankCells || 0) + ' 个字段留空将回退中文');
+    loadData(currentPage);
+}
+
+// 初始化语言选择 & 切换语言时重载列表
+document.getElementById('adminLangSelect').value = currentLang;
+document.addEventListener('adminlangchange', () => loadData(currentPage));
 
 loadData(1);
 </script>

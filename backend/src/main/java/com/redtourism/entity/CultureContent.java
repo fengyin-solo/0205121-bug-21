@@ -24,6 +24,11 @@ public class CultureContent implements Serializable {
     private Long viewCount;
     private Long favoriteCount;
     private Long likeCount;
+
+    /** 非数据库列：当前请求语言下是否有字段回退到了中文 */
+    @TableField(exist = false)
+    private Boolean langFallback;
+
     @TableField(fill = FieldFill.INSERT)
     private Date createTime;
     @TableField(fill = FieldFill.INSERT_UPDATE)

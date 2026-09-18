@@ -119,8 +119,10 @@ docker compose up --build -d
 |------|------|
 | `GET /api/hotel/list?page=&size=&keyword=&orderBy=` | 酒店列表 |
 | `GET /api/hotel/detail?id=` | 酒店详情 |
-| `GET /api/food/list?page=&size=&category=&keyword=` | 美食列表 |
-| `GET /api/food/detail?id=` | 美食详情（含门店信息） |
+| `GET /api/food/list?page=&size=&category=&keyword=&lang=` | 美食列表（lang: zh/en/ja，缺译文回退中文并返回 langFallback 标记） |
+| `GET /api/food/detail?id=&lang=` | 美食详情（含门店信息） |
+| `GET /api/spot/carousel?lang=` / `hot?lang=` / `related?id=&lang=` | 轮播图/热门/相关景点均支持 lang |
+| `GET /api/route/spots?routeId=&lang=` | 线路行程（景点名称按 lang 回填） |
 
 ### 用户交互
 | 端点 | 说明 |
@@ -204,6 +206,8 @@ docker compose up --build -d
 | `GET /api/admin/role/menu/toggle?id=` | 启用/禁用菜单权限 |
 | `GET /api/admin/role/menu/delete?id=` | 删除菜单权限 |
 | `GET /api/admin/stats` | 系统统计数据 |
+| `GET /api/admin/translation/template?type=&lang=` | 下载译文 CSV 模板（type: spot/route/food/culture，lang: en/ja） |
+| `POST /api/admin/translation/import` (multipart: file/type/lang) | 批量导入译文：按 ID 匹配、整批事务化、留空字段回退中文、重复上传整体覆盖 |
 
 ---
 
@@ -334,5 +338,5 @@ label-02051/
 2. **数据持久化**：MySQL 数据通过 Docker named volume `mysql-data` 持久化，`docker compose down` 不会丢失数据；`docker compose down -v` 会清除数据并在下次启动时重新初始化。
 3. **图片上传**：支持 10MB 以内图片上传，存储于 `backend/uploads/` 目录，通过 Nginx 静态服务以 `/uploads/` 路径访问。
 4. **智能客服**：基于 FAQ 表关键词相似度匹配实现自动回复，非 AI 大模型；人工客服采用前端轮询（5 秒间隔）模拟实时效果。
-5. **多语言**：英文（en）和日文（ja）内容需在管理端景点/线路/文化编辑页面手动填写对应语言字段（`name_en`/`name_ja`/`description_en`/`description_ja` 等），初始化数据中已为部分景点提供英/日文示例。
+5. **多语言**：语言选择保存在浏览器 localStorage（键名 `lang`），在游客端与管理端所有页面间保持一致。景点、线路、美食、红色文化的列表与详情接口均支持 `lang=zh/en/ja`，服务端按同一口径回填译文；某条记录缺少译文时统一回退显示中文，并在名称旁以「Chinese / 中国語」标记注明。英文（en）和日文（ja）译文可在管理端对应管理页通过「上传译文」批量导入（CSV，UTF-8），导入按 ID 匹配、与行顺序无关，整批事务化（任何一行校验失败不会留下半份译文），再次上传整体覆盖上一次结果；也可下载含中文原文的模板后逐条翻译。
 6. **Session 超时**：默认 30 分钟，配置于 `application.yml`；前端每 5 分钟检测一次 session 状态，超时自动弹窗提示并跳转登录页。

@@ -28,4 +28,8 @@ public class RouteSpot implements Serializable {
     private Double latitude;
     @TableField(exist = false)
     private Double longitude;
+
+    /** 非数据库列：景点名称是否回退到了中文 */
+    @TableField(exist = false)
+    private Boolean langFallback;
 }

@@ -83,7 +83,7 @@ async function loadFoods(page) {
                 (f.category ? '<span class="card-tag">' + f.category + '</span>' : '') +
             '</div>' +
             '<div class="card-body">' +
-                '<h3>' + (f.name || '') + '</h3>' +
+                '<h3>' + (f.name || '') + fallbackNote(f) + '</h3>' +
                 '<p>' + (f.description || f.intro || '') + '</p>' +
                 '<div class="card-meta">' +
                     '<span class="card-price">¥' + (f.price || 0) + '</span>' +
@@ -93,6 +93,9 @@ async function loadFoods(page) {
     ).join('');
     renderPagination(document.getElementById('pagination'), currentPage, totalRecords, 9, 'loadFoods');
 }
+
+// 切换语言时按当前分类/关键词重新加载
+document.addEventListener('langchange', () => loadFoods(currentPage));
 
 loadCategories();
 loadFoods(1);

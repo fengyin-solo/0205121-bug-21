@@ -170,6 +170,9 @@ async function fetchSpots() {
     allSpots = d && d.records ? d.records : [];
 }
 
+// 切换语言后清空景点缓存，下次打开编辑器时按新语言加载景点名称
+document.addEventListener('langchange', () => { allSpots = []; });
+
 async function openEditor(id) {
     await fetchSpots();
     selectedSpots = [];
